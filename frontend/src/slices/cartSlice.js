@@ -1,17 +1,14 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice } from '@reduxjs/toolkit';
+import { updateCart } from '../utils/cartUtils';
 
 // items in the cart will be stored in local storage so when you leave and come back they are still in the cart
 // We check to see if something is in there and then parse the local storage (local storage can only hold data as strings)
-const initialState = localStorage.getItem("cart")
-  ? JSON.parse(localStorage.getItem("cart"))
-  : { cartItems: [] };
-
-const addDecimals = (num) => {
-  return (Math.round(num * 100) / 100).toFixed(2);
-};
+const initialState = localStorage.getItem('cart')
+  ? JSON.parse(localStorage.getItem('cart'))
+  : { cartItems: [], shippingAddress: {}, paymentMethod: 'PayPal' };
 
 const cartSlice = createSlice({
-  name: "cart",
+  name: 'cart',
   initialState,
   reducers: {
     addToCart: (state, action) => {
@@ -25,31 +22,33 @@ const cartSlice = createSlice({
           x._id === existItem._id ? item : x
         );
       } else {
-        state.cartItems = [...state.cartItems];
+        state.cartItems = [...state.cartItems, item];
       }
 
-      // Calc items prices
-      state.itemsPrice = addDecimals(
-        state.cartItems.reduce((acc, item) => acc + item.price * item.qty, 0)
-      );
-      // Calc shipping price (If the order is over £100 then free, else £5 shipping)
-      state.shippingPrice = addDecimals(state.itemsPrice > 100 ? 0 : 10);
-      // Calc tax price
-      state.taxPrice = addDecimals(
-        Number((0.15 * state.itemsPrice).toFixed(2))
-      );
-      // Calc total price
-      state.totalPrice = (
-        Number(state.itemsPrice) +
-        Number(state.shippingPrice) +
-        Number(state.taxPrice)
-      ).toFixed(2);
+      return updateCart(state);
+    },
 
-      localStorage.setItem("cart", JSON.stringify(state));
+    removeFromCart: (state, action) => {
+      state.cartItems = state.cartItems.filter((x) => x._id !== action.payload);
+
+      return updateCart(state);
+    },
+    saveShippingAddress: (state, action) => {
+      state.shippingAddress = action.payload;
+      return updateCart(state);
+    },
+    savePaymentMethod: (state, action) => {
+      state.paymentMethod = action.payload;
+      return updateCart(state);
     },
   },
 });
 
-export const { addToCart } = cartSlice.actions;
+export const {
+  addToCart,
+  removeFromCart,
+  saveShippingAddress,
+  savePaymentMethod,
+} = cartSlice.actions;
 
 export default cartSlice.reducer;
